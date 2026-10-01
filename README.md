@@ -18,7 +18,13 @@ npm run build
 npm run preview
 ```
 
-Publica el contenido de `dist/` en GitHub Pages con repositorio `BioMika` (base configurada en `vite.config.ts`).
+**Producción (GitHub Pages):** cada push a `main` despliega con Actions.
+
+- URL: https://neaf1988.github.io/BioMika/
+- Workflow: `.github/workflows/deploy-pages.yml`
+- En el repo: **Settings → Pages → Source: GitHub Actions** (si no se activó solo)
+
+La base `/BioMika/` está en `vite.config.ts`.
 
 ## Tests
 
