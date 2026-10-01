@@ -12,7 +12,10 @@ import {
   goalBodyFatRange,
 } from '../lib/profileDefaults'
 import type { Gender, GoalDirection, UserProfile } from '../types'
+import { NumberField } from '../components/NumberField'
+import { SaveSuccessBanner } from '../components/SaveSuccessBanner'
 import { getEntriesSortedDesc } from '../db/database'
+import { parseDecimalInput } from '../lib/decimalInput'
 
 export function ProfilePage() {
   const stored = useLiveQuery(() => getProfile(), [])
@@ -21,7 +24,7 @@ export function ProfilePage() {
     [],
   )
   const [profile, setProfile] = useState<UserProfile>(() => createDefaultProfile())
-  const [saved, setSaved] = useState(false)
+  const [saveSuccess, setSaveSuccess] = useState(false)
   const [suggestedWeight, setSuggestedWeight] = useState<number | null>(null)
 
   useEffect(() => {
@@ -80,8 +83,8 @@ export function ProfilePage() {
       return
     }
     await saveProfile(profile)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+    setSaveSuccess(true)
+    window.setTimeout(() => setSaveSuccess(false), 6000)
   }
 
   return (
@@ -108,20 +111,21 @@ export function ProfilePage() {
           ) : null}
         </label>
 
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">Estatura (cm) *</span>
-          <input
-            type="number"
-            required
-            min={50}
-            max={250}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2"
-            value={profile.height}
-            onChange={(e) =>
-              setProfile({ ...profile, height: Number(e.target.value) })
-            }
-          />
-        </label>
+        <NumberField
+          label="Estatura"
+          unit="cm"
+          required
+          min={50}
+          max={250}
+          step={1}
+          value={profile.height ? String(profile.height) : ''}
+          onChange={(v) =>
+            setProfile({
+              ...profile,
+              height: v === '' ? 0 : parseDecimalInput(v) ?? profile.height,
+            })
+          }
+        />
 
         <fieldset>
           <legend className="mb-2 text-sm font-medium">Sexo biológico *</legend>
@@ -144,43 +148,33 @@ export function ProfilePage() {
 
         <h3 className="font-medium text-teal-900">Objetivos</h3>
 
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">
-            Grasa objetivo ({fatRange.min}–{fatRange.max} %) *
-          </span>
-          <input
-            type="number"
-            step={0.1}
-            min={fatRange.min}
-            max={fatRange.max}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2"
-            value={profile.goalBodyFatPercent}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                goalBodyFatPercent: Number(e.target.value),
-              })
+        <NumberField
+          label={`Grasa objetivo (${fatRange.min}–${fatRange.max} %)`}
+          required
+          min={fatRange.min}
+          max={fatRange.max}
+          value={String(profile.goalBodyFatPercent)}
+          onChange={(v) => {
+            const n = parseDecimalInput(v)
+            if (n != null) {
+              setProfile({ ...profile, goalBodyFatPercent: n })
             }
-          />
-        </label>
+          }}
+        />
 
-        <label className="block">
-          <span className="mb-1 block text-sm font-medium">Peso objetivo (kg)</span>
-          <input
-            type="number"
-            step={0.1}
-            min={30}
-            max={300}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2"
-            value={profile.goalWeight ?? ''}
-            onChange={(e) =>
-              setProfile({
-                ...profile,
-                goalWeight: e.target.value === '' ? null : Number(e.target.value),
-              })
-            }
-          />
-        </label>
+        <NumberField
+          label="Peso objetivo"
+          unit="kg"
+          min={30}
+          max={300}
+          value={profile.goalWeight != null ? String(profile.goalWeight) : ''}
+          onChange={(v) =>
+            setProfile({
+              ...profile,
+              goalWeight: v === '' ? null : parseDecimalInput(v),
+            })
+          }
+        />
 
         <button
           type="button"
@@ -234,10 +228,10 @@ export function ProfilePage() {
         >
           Guardar perfil
         </button>
-        {saved ? (
-          <p className="text-center text-sm text-emerald-700" role="status">
-            Perfil guardado
-          </p>
+        {saveSuccess ? (
+          <SaveSuccessBanner title="Perfil guardado satisfactoriamente">
+            Tus datos y objetivos quedaron almacenados en este dispositivo.
+          </SaveSuccessBanner>
         ) : null}
       </form>
     </div>

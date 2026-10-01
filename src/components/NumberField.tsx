@@ -1,3 +1,5 @@
+import { sanitizeDecimalTyping } from '../lib/decimalInput'
+
 interface NumberFieldProps {
   label: string
   value: string
@@ -17,7 +19,7 @@ export function NumberField({
   required,
   min,
   max,
-  step = 0.1,
+  step: _step = 0.1,
   unit,
   id,
 }: NumberFieldProps) {
@@ -31,15 +33,17 @@ export function NumberField({
       </span>
       <input
         id={inputId}
-        type="number"
+        type="text"
         inputMode="decimal"
+        autoComplete="off"
+        enterKeyHint="done"
         className="w-full rounded-lg border border-slate-200 px-3 py-2 text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-200"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(sanitizeDecimalTyping(e.target.value))}
         required={required}
-        min={min}
-        max={max}
-        step={step}
+        aria-valuemin={min}
+        aria-valuemax={max}
+        placeholder="0"
       />
     </label>
   )

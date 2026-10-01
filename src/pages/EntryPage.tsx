@@ -3,7 +3,9 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useSearchParams } from 'react-router-dom'
 import { getEntryByDate, getProfile, upsertEntry } from '../db/database'
 import { NumberField } from '../components/NumberField'
+import { SaveSuccessBanner } from '../components/SaveSuccessBanner'
 import { formatDisplayDate, todayIso } from '../lib/dates'
+import { parseDecimalInput } from '../lib/decimalInput'
 import type { Entry, FatMassUnit } from '../types'
 
 const emptyForm = (date: string): Entry => ({
@@ -98,7 +100,7 @@ export function EntryPage() {
   function setNum(field: keyof Entry, raw: string) {
     setForm((f) => ({
       ...f,
-      [field]: raw === '' ? null : Number(raw),
+      [field]: raw === '' ? null : parseDecimalInput(raw),
     }))
   }
 
@@ -116,19 +118,6 @@ export function EntryPage() {
           Ver historial de registros
         </Link>
       </div>
-
-      {saveSuccess ? (
-        <div
-          role="alert"
-          className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-950 shadow-sm"
-        >
-          <p className="font-semibold">Medición guardada satisfactoriamente</p>
-          <p className="mt-1 text-sm">
-            {formatDisplayDate(saveSuccess.date)} · {saveSuccess.weight.toFixed(1)}{' '}
-            kg
-          </p>
-        </div>
-      ) : null}
 
       <label className="block">
         <span className="mb-1 block text-sm font-medium">Fecha de la medición *</span>
@@ -149,7 +138,12 @@ export function EntryPage() {
           min={30}
           max={300}
           value={form.weight ? String(form.weight) : ''}
-          onChange={(v) => setForm((f) => ({ ...f, weight: v === '' ? 0 : Number(v) }))}
+          onChange={(v) =>
+            setForm((f) => ({
+              ...f,
+              weight: v === '' ? 0 : parseDecimalInput(v) ?? 0,
+            }))
+          }
         />
 
         <fieldset className="space-y-3 rounded-xl border border-slate-100 bg-white p-4">
@@ -230,6 +224,12 @@ export function EntryPage() {
         >
           Guardar medición
         </button>
+        {saveSuccess ? (
+          <SaveSuccessBanner title="Medición guardada satisfactoriamente">
+            {formatDisplayDate(saveSuccess.date)} · {saveSuccess.weight.toFixed(1)}{' '}
+            kg
+          </SaveSuccessBanner>
+        ) : null}
       </form>
     </div>
   )
