@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BioMika">
+  <rect width="512" height="512" rx="108" fill="#0f766e"/>
+  <circle cx="256" cy="188" r="64" fill="none" stroke="#f0fdfa" stroke-width="40"/>
+  <path
+    fill="#f0fdfa"
+    d="M152 392c0-57.4 46.6-104 104-104s104 46.6 104 104v32H152v-32z"
+  />
+  <path
+    fill="#5eead4"
+    opacity="0.9"
+    d="M256 128c-22 0-40 16-40 36 0 14 8 26 20 32l20 10 20-10c12-6 20-18 20-32 0-20-18-36-40-36z"
+  />
+</svg>
