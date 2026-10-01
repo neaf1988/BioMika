@@ -1,16 +1,32 @@
 /** Acepta coma o punto como separador decimal (teclados móviles en español). */
 export function sanitizeDecimalTyping(raw: string): string {
-  let s = raw.trim().replace(/\s/g, '').replace(',', '.')
-  if (s.startsWith('.')) s = `0${s}`
-  const parts = s.split('.')
-  if (parts.length > 2) {
-    s = `${parts[0]}.${parts.slice(1).join('')}`
+  const normalized = raw
+    .replace(/\u00a0/g, '')
+    .replace(/\s/g, '')
+    .replace(/,/g, '.')
+
+  let out = ''
+  let hasDot = false
+  for (const ch of normalized) {
+    if (ch >= '0' && ch <= '9') {
+      out += ch
+      continue
+    }
+    if (ch === '-' && out.length === 0) {
+      out += ch
+      continue
+    }
+    if (ch === '.' && !hasDot) {
+      out += ch
+      hasDot = true
+    }
   }
-  if (s === '') return ''
-  if (!/^-?\d*\.?\d*$/.test(s)) {
-    return s.slice(0, -1)
-  }
-  return s
+
+  if (out === '.' || out === '-.') out = out.startsWith('-') ? '-0.' : '0.'
+  else if (out.startsWith('.')) out = `0${out}`
+  else if (out.startsWith('-.')) out = `-0.${out.slice(2)}`
+
+  return out
 }
 
 export function parseDecimalInput(raw: string): number | null {
@@ -20,4 +36,9 @@ export function parseDecimalInput(raw: string): number | null {
   }
   const n = Number(normalized)
   return Number.isFinite(n) ? n : null
+}
+
+export function isIncompleteDecimal(raw: string): boolean {
+  const normalized = sanitizeDecimalTyping(raw)
+  return normalized.endsWith('.') || normalized === '-'
 }

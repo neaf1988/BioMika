@@ -5,7 +5,8 @@ import { getEntryByDate, getProfile, upsertEntry } from '../db/database'
 import { NumberField } from '../components/NumberField'
 import { SaveSuccessBanner } from '../components/SaveSuccessBanner'
 import { formatDisplayDate, todayIso } from '../lib/dates'
-import { parseDecimalInput } from '../lib/decimalInput'
+import { useDecimalFieldTexts } from '../hooks/useDecimalFieldTexts'
+import { isIncompleteDecimal, parseDecimalInput } from '../lib/decimalInput'
 import type { Entry, FatMassUnit } from '../types'
 
 const emptyForm = (date: string): Entry => ({
@@ -37,6 +38,7 @@ export function EntryPage() {
     date: string
     weight: number
   } | null>(null)
+  const numText = useDecimalFieldTexts(date)
 
   useEffect(() => {
     if (fechaParam && fechaParam <= todayIso()) {
@@ -79,14 +81,21 @@ export function EntryPage() {
       alert('No puedes registrar fechas futuras.')
       return
     }
-    if (!form.weight || form.weight <= 0) {
+    const weightRaw = numText.display('weight', form.weight, { hideZero: true })
+    const weightParsed = parseDecimalInput(weightRaw)
+    if (isIncompleteDecimal(weightRaw)) {
+      alert('Completa el peso (falta el decimal después de la coma).')
+      return
+    }
+    const weight = weightParsed ?? form.weight
+    if (!weight || weight <= 0) {
       alert('El peso es obligatorio.')
       return
     }
     const payload: Entry = {
       ...form,
       date,
-      weight: form.weight,
+      weight,
       fatMassUnit:
         form.fatMass != null && form.fatMass > 0
           ? form.fatMassUnit ?? 'percent'
@@ -97,11 +106,16 @@ export function EntryPage() {
     window.setTimeout(() => setSaveSuccess(null), 6000)
   }
 
-  function setNum(field: keyof Entry, raw: string) {
-    setForm((f) => ({
-      ...f,
-      [field]: raw === '' ? null : parseDecimalInput(raw),
-    }))
+  function setNum(field: keyof Entry, textKey: string, raw: string) {
+    numText.setText(textKey, raw)
+    if (raw === '') {
+      setForm((f) => ({ ...f, [field]: null }))
+      return
+    }
+    const n = parseDecimalInput(raw)
+    if (n != null) {
+      setForm((f) => ({ ...f, [field]: n }))
+    }
   }
 
   return (
@@ -137,25 +151,52 @@ export function EntryPage() {
           required
           min={30}
           max={300}
-          value={form.weight ? String(form.weight) : ''}
-          onChange={(v) =>
-            setForm((f) => ({
-              ...f,
-              weight: v === '' ? 0 : parseDecimalInput(v) ?? 0,
-            }))
-          }
+          value={numText.display('weight', form.weight, { hideZero: true })}
+          onChange={(v) => {
+            numText.setText('weight', v)
+            if (v === '') {
+              setForm((f) => ({ ...f, weight: 0 }))
+              return
+            }
+            const n = parseDecimalInput(v)
+            if (n != null) setForm((f) => ({ ...f, weight: n }))
+          }}
         />
 
         <fieldset className="space-y-3 rounded-xl border border-slate-100 bg-white p-4">
           <legend className="px-1 text-sm font-medium text-slate-700">
             Perímetros (cm, opcional)
           </legend>
-          <NumberField label="Espalda" value={str(form.back)} onChange={(v) => setNum('back', v)} />
-          <NumberField label="Cintura" value={str(form.waist)} onChange={(v) => setNum('waist', v)} />
-          <NumberField label="Cadera (cola)" value={str(form.glutes)} onChange={(v) => setNum('glutes', v)} />
-          <NumberField label="Pierna" value={str(form.leg)} onChange={(v) => setNum('leg', v)} />
-          <NumberField label="Brazo" value={str(form.arm)} onChange={(v) => setNum('arm', v)} />
-          <NumberField label="Cuello" value={str(form.neck)} onChange={(v) => setNum('neck', v)} />
+          <NumberField
+            label="Espalda"
+            value={numText.display('back', form.back)}
+            onChange={(v) => setNum('back', 'back', v)}
+          />
+          <NumberField
+            label="Cintura"
+            value={numText.display('waist', form.waist)}
+            onChange={(v) => setNum('waist', 'waist', v)}
+          />
+          <NumberField
+            label="Cadera (cola)"
+            value={numText.display('glutes', form.glutes)}
+            onChange={(v) => setNum('glutes', 'glutes', v)}
+          />
+          <NumberField
+            label="Pierna"
+            value={numText.display('leg', form.leg)}
+            onChange={(v) => setNum('leg', 'leg', v)}
+          />
+          <NumberField
+            label="Brazo"
+            value={numText.display('arm', form.arm)}
+            onChange={(v) => setNum('arm', 'arm', v)}
+          />
+          <NumberField
+            label="Cuello"
+            value={numText.display('neck', form.neck)}
+            onChange={(v) => setNum('neck', 'neck', v)}
+          />
         </fieldset>
 
         <fieldset className="space-y-3 rounded-xl border border-slate-100 bg-white p-4">
@@ -164,8 +205,8 @@ export function EntryPage() {
           </legend>
           <NumberField
             label="Masa grasa"
-            value={str(form.fatMass)}
-            onChange={(v) => setNum('fatMass', v)}
+            value={numText.display('fatMass', form.fatMass)}
+            onChange={(v) => setNum('fatMass', 'fatMass', v)}
           />
           <label className="block text-sm">
             <span className="mb-1 block font-medium">Unidad masa grasa</span>
@@ -186,8 +227,8 @@ export function EntryPage() {
           <NumberField
             label="MME"
             unit="kg"
-            value={str(form.skeletalMuscleMass)}
-            onChange={(v) => setNum('skeletalMuscleMass', v)}
+            value={numText.display('mme', form.skeletalMuscleMass)}
+            onChange={(v) => setNum('skeletalMuscleMass', 'mme', v)}
           />
         </fieldset>
 
@@ -233,10 +274,6 @@ export function EntryPage() {
       </form>
     </div>
   )
-}
-
-function str(n: number | null | undefined): string {
-  return n != null && n !== 0 ? String(n) : ''
 }
 
 function ScaleField({

@@ -15,6 +15,7 @@ import type { Gender, GoalDirection, UserProfile } from '../types'
 import { NumberField } from '../components/NumberField'
 import { SaveSuccessBanner } from '../components/SaveSuccessBanner'
 import { getEntriesSortedDesc } from '../db/database'
+import { useDecimalFieldTexts } from '../hooks/useDecimalFieldTexts'
 import { parseDecimalInput } from '../lib/decimalInput'
 
 export function ProfilePage() {
@@ -25,6 +26,7 @@ export function ProfilePage() {
   )
   const [profile, setProfile] = useState<UserProfile>(() => createDefaultProfile())
   const [saveSuccess, setSaveSuccess] = useState(false)
+  const numText = useDecimalFieldTexts(stored?.dob ?? 'empty')
   const [suggestedWeight, setSuggestedWeight] = useState<number | null>(null)
 
   useEffect(() => {
@@ -118,13 +120,16 @@ export function ProfilePage() {
           min={50}
           max={250}
           step={1}
-          value={profile.height ? String(profile.height) : ''}
-          onChange={(v) =>
-            setProfile({
-              ...profile,
-              height: v === '' ? 0 : parseDecimalInput(v) ?? profile.height,
-            })
-          }
+          value={numText.display('height', profile.height, { hideZero: true })}
+          onChange={(v) => {
+            numText.setText('height', v)
+            if (v === '') {
+              setProfile({ ...profile, height: 0 })
+              return
+            }
+            const n = parseDecimalInput(v)
+            if (n != null) setProfile({ ...profile, height: n })
+          }}
         />
 
         <fieldset>
@@ -153,12 +158,12 @@ export function ProfilePage() {
           required
           min={fatRange.min}
           max={fatRange.max}
-          value={String(profile.goalBodyFatPercent)}
+          value={numText.display('goalFat', profile.goalBodyFatPercent)}
           onChange={(v) => {
+            numText.setText('goalFat', v)
+            if (v === '') return
             const n = parseDecimalInput(v)
-            if (n != null) {
-              setProfile({ ...profile, goalBodyFatPercent: n })
-            }
+            if (n != null) setProfile({ ...profile, goalBodyFatPercent: n })
           }}
         />
 
@@ -167,13 +172,16 @@ export function ProfilePage() {
           unit="kg"
           min={30}
           max={300}
-          value={profile.goalWeight != null ? String(profile.goalWeight) : ''}
-          onChange={(v) =>
-            setProfile({
-              ...profile,
-              goalWeight: v === '' ? null : parseDecimalInput(v),
-            })
-          }
+          value={numText.display('goalWeight', profile.goalWeight)}
+          onChange={(v) => {
+            numText.setText('goalWeight', v)
+            if (v === '') {
+              setProfile({ ...profile, goalWeight: null })
+              return
+            }
+            const n = parseDecimalInput(v)
+            if (n != null) setProfile({ ...profile, goalWeight: n })
+          }}
         />
 
         <button
@@ -194,6 +202,7 @@ export function ProfilePage() {
               className="mt-2 text-teal-700 underline"
               onClick={() => {
                 setProfile({ ...profile, goalWeight: suggestedWeight })
+                numText.clearKey('goalWeight')
                 setSuggestedWeight(null)
               }}
             >

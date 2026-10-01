@@ -13,4 +13,9 @@ describe('decimalInput', () => {
   it('returns null for empty', () => {
     expect(parseDecimalInput('')).toBeNull()
   })
+
+  it('keeps trailing dot while typing', () => {
+    expect(sanitizeDecimalTyping('70,')).toBe('70.')
+    expect(parseDecimalInput('70.')).toBeNull()
+  })
 })
